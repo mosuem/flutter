@@ -10,11 +10,13 @@ import 'package:native_assets_cli/code_assets_builder.dart';
 import 'package:native_assets_cli/data_assets_builder.dart';
 import 'package:package_config/package_config_types.dart';
 
+import '../../artifacts.dart' show Artifact;
 import '../../base/common.dart';
 import '../../base/file_system.dart';
 import '../../base/logger.dart';
 import '../../base/platform.dart';
 import '../../build_info.dart';
+import '../../build_system/build_system.dart' show Environment;
 import '../../build_system/exceptions.dart';
 import '../../cache.dart';
 import '../../convert.dart';
@@ -22,6 +24,7 @@ import '../../features.dart';
 import '../../globals.dart' as globals;
 import '../../macos/xcode.dart' as xcode;
 import 'android/native_assets.dart';
+import 'flutter_config.dart';
 import 'ios/native_assets.dart';
 import 'linux/native_assets.dart';
 import 'macos/native_assets.dart';
@@ -119,7 +122,7 @@ final class DartHookResult {
 /// Invokes the build of all transitive Dart package hooks and prepares assets
 /// to be included in the native build.
 Future<DartHookResult> runFlutterSpecificHooks({
-  required Map<String, String> environmentDefines,
+  required Environment environment,
   required FlutterNativeAssetsBuildRunner buildRunner,
   required TargetPlatform? targetPlatform,
   required Uri projectUri,
@@ -130,6 +133,7 @@ Future<DartHookResult> runFlutterSpecificHooks({
   final Uri buildUri = nativeAssetsBuildUri(projectUri, isWeb ? 'web' : targetOS!.name);
 
   // Sanity check.
+  final Map<String, String> environmentDefines = environment.defines;
   final String? codesignIdentity = environmentDefines[kCodesignIdentity];
   assert(codesignIdentity == null || targetOS == OS.iOS || targetOS == OS.macOS);
 
@@ -158,7 +162,7 @@ Future<DartHookResult> runFlutterSpecificHooks({
       architectures?.isEmpty ?? false
           ? DartHookResult.empty()
           : await _runDartHooks(
-            environmentDefines: environmentDefines,
+            environment: environment,
             buildRunner: buildRunner,
             codeAssetSupport: !isWeb && featureFlags.isNativeAssetsEnabled,
             dataAssetSupport: featureFlags.isDartDataAssetsEnabled,
@@ -618,7 +622,7 @@ Future<void> _copyNativeCodeAssetsForOS(
 /// This will invoke `hook/build.dart` and `hook/link.dart` (if applicable) for
 /// all transitive dart packages that define such hooks.
 Future<DartHookResult> _runDartHooks({
-  required Map<String, String> environmentDefines,
+  required Environment environment,
   required FlutterNativeAssetsBuildRunner buildRunner,
   required List<Architecture>? architectures,
   required Uri projectUri,
@@ -643,6 +647,7 @@ Future<DartHookResult> _runDartHooks({
   final List<EncodedAsset> assets = <EncodedAsset>[];
   final Set<Uri> dependencies = <Uri>{};
 
+  final Map<String, String> environmentDefines = environment.defines;
   final EnvironmentType? environmentType;
   if (targetOS == OS.iOS) {
     final String? sdkRoot = environmentDefines[kSdkRoot];
@@ -682,15 +687,20 @@ Future<DartHookResult> _runDartHooks({
       inputCreator: () {
         final BuildInputBuilder buildInputBuilder = BuildInputBuilder();
         if (targetOS != null) {
-          buildInputBuilder.config.setupCode(
-            targetArchitecture: architecture,
-            linkModePreference: LinkModePreference.dynamic,
-            cCompiler: cCompilerConfig,
-            targetOS: targetOS,
-            android: androidConfig,
-            iOS: iosConfig,
-            macOS: macOSConfig,
-          );
+          buildInputBuilder.config
+            ..setupCode(
+              targetArchitecture: architecture,
+              linkModePreference: LinkModePreference.dynamic,
+              cCompiler: cCompilerConfig,
+              targetOS: targetOS,
+              android: androidConfig,
+              iOS: iosConfig,
+              macOS: macOSConfig,
+            )
+            ..setupFlutter(
+              //TODO(mosum): In the future, decouple the font subset tool from Flutter by shipping it with the icon treeshaking package.
+              fontSubsetBinary: environment.artifacts.getArtifactPath(Artifact.fontSubset),
+            );
         }
         return buildInputBuilder;
       },

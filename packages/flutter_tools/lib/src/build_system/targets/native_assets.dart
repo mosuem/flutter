@@ -5,6 +5,7 @@
 import 'package:meta/meta.dart';
 import 'package:package_config/package_config_types.dart';
 
+import '../../artifacts.dart';
 import '../../base/common.dart';
 import '../../base/file_system.dart';
 import '../../build_info.dart';
@@ -55,7 +56,7 @@ class DartBuild extends Target {
           runPackageName!,
         );
     result = await runFlutterSpecificHooks(
-      environmentDefines: environment.defines,
+      environment: environment,
       buildRunner: buildRunner,
       targetPlatform: targetPlatform,
       projectUri: projectUri,
@@ -183,6 +184,7 @@ class InstallCodeAssets extends Target {
     ),
     // If different packages are resolved, different native assets might need to be built.
     Source.pattern('{WORKSPACE_DIR}/.dart_tool/package_config_subset'),
+    Source.artifact(Artifact.fontSubset),
   ];
 
   @override
