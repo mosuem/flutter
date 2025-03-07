@@ -56,9 +56,11 @@ class DartBuild extends Target {
           runPackageName!,
         );
     result = await runFlutterSpecificHooks(
-      environmentDefines: {
+      environmentDefines: <String, String>{
         ...environment.defines,
         Artifact.fontSubset.name: environment.artifacts.getArtifactPath(Artifact.fontSubset),
+        KernelSnapshot.recordedUsagesName:
+            environment.buildDir.childFile(KernelSnapshot.recordedUsagesName).path,
       },
       buildRunner: buildRunner,
       targetPlatform: targetPlatform,
@@ -96,7 +98,7 @@ class DartBuild extends Target {
     ),
     // If different packages are resolved, different native assets might need to be built.
     Source.pattern('{WORKSPACE_DIR}/.dart_tool/package_config_subset'),
-    // TODO(mosuem): Should consume resources.json. https://github.com/flutter/flutter/issues/146263
+    Source.pattern('{BUILD_DIR}/${KernelSnapshot.recordedUsagesName}'),
   ];
 
   @override

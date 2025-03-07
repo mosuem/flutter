@@ -19,6 +19,7 @@ import '../../base/logger.dart';
 import '../../base/platform.dart';
 import '../../build_info.dart';
 import '../../build_system/exceptions.dart';
+import '../../build_system/targets/common.dart';
 import '../../cache.dart';
 import '../../convert.dart';
 import '../../features.dart';
@@ -756,6 +757,10 @@ Future<DartHookResult> _runDartHooks({
             macOS: macOSConfig,
           );
         }
+        linkInputBuilder.setupLink(
+          assets: assets,
+          recordedUsesFile: Uri.file(environmentDefines[KernelSnapshot.recordedUsagesName]!),
+        );
         return linkInputBuilder;
       },
       inputValidator:
