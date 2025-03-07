@@ -42,14 +42,13 @@ Future<void> main(List<String> arguments) async => await link(arguments, (
     }
     final fontFile = fs.file(fontAsset.file);
     logger.info('Running $fontSubset on $fontFile.');
-    var pathOfSubsetFont = p.join(
-      input.outputDirectoryShared.path,
+    var pathOfSubsetFont = input.outputDirectoryShared.resolve(
       //TODO(mosum): Handle duplicates
-      p.basename(fontAsset.file),
+      p.basename(fontAsset.file.path),
     );
     final success = await subsetFont(
       fontFile: fontFile,
-      outputPath: pathOfSubsetFont,
+      outputPath: pathOfSubsetFont.toFilePath(),
       iconData: iconData,
       fs: fs,
       pathToSubsetBinary: fontSubset,
@@ -109,7 +108,6 @@ Map<FontAsset, IconTreeShakerData> getIconData(
       final List<int> optionalCodePoints = isWeb ? <int>[kSpacePoint] : <int>[];
       map[font] = IconTreeShakerData(
         family: font.family,
-        relativePath: font.file,
         codePoints: instances.map((instance) => instance.codePoint).toList(),
         optionalCodePoints: optionalCodePoints,
       );

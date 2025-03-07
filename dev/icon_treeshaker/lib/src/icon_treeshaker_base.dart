@@ -96,16 +96,12 @@ class IconTreeShakerData {
   /// All parameters are required.
   const IconTreeShakerData({
     required this.family,
-    required this.relativePath,
     required this.codePoints,
     required this.optionalCodePoints,
   });
 
   /// The font family name, e.g. "MaterialIcons".
   final String family;
-
-  /// The relative path to the font file.
-  final String relativePath;
 
   /// The list of code points for the font.
   final List<int> codePoints;
@@ -115,7 +111,7 @@ class IconTreeShakerData {
   final List<int> optionalCodePoints;
 
   @override
-  String toString() => 'FontSubsetData($family, $relativePath, $codePoints)';
+  String toString() => 'FontSubsetData($family, $codePoints)';
 }
 
 class IconTreeShakerException implements Exception {
