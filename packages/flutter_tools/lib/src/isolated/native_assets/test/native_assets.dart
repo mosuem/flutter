@@ -7,6 +7,7 @@
 import 'package:native_assets_cli/code_assets.dart' show OS;
 import 'package:package_config/package_config_types.dart';
 
+import '../../../artifacts.dart' show Artifact;
 import '../../../base/platform.dart';
 import '../../../build_info.dart';
 import '../../../globals.dart' as globals;
@@ -59,6 +60,7 @@ Future<Uri?> testCompilerBuildNativeAssets(BuildInfo buildInfo) async {
 
   final Map<String, String> environmentDefines = <String, String>{
     kBuildMode: buildInfo.mode.cliName,
+    Artifact.fontSubset.name: '',
   };
 
   // First perform the dart build.

@@ -15,11 +15,16 @@ extension FlutterHookConfig on HookConfig {
 class FlutterConfig {
   factory FlutterConfig.fromJson(Map<String, Object?> json) {
     return FlutterConfig._(
-      fontSubsetBinary: json.getNested(<String>[_configKey, _flutterKey, _fontSubsetBinaryKey]),
+      fontSubsetBinary: json.getNested(<String>[
+        _configKey,
+        _flutterKey,
+        _fontSubsetBinaryKey,
+      ]),
     );
   }
   // Should not be made public, class will be replaced as a view on `json`.
-  FlutterConfig._({String? fontSubsetBinary}) : _fontSubsetBinary = fontSubsetBinary;
+  FlutterConfig._({String? fontSubsetBinary})
+    : _fontSubsetBinary = fontSubsetBinary;
 
   final String? _fontSubsetBinary;
 
@@ -29,7 +34,11 @@ class FlutterConfig {
 /// Extension to initialize code specific configuration on link/build inputs.
 extension CodeAssetBuildInputBuilder on HookConfigBuilder {
   void setupFlutter({String? fontSubsetBinary}) {
-    json.setNested(<String>[_configKey, _flutterKey, _fontSubsetBinaryKey], fontSubsetBinary);
+    json.setNested(<String>[
+      _configKey,
+      _flutterKey,
+      _fontSubsetBinaryKey,
+    ], fontSubsetBinary);
   }
 }
 
@@ -40,7 +49,10 @@ const String _fontSubsetBinaryKey = 'fontSubsetBinary';
 extension MapJsonUtils on Map<String, Object?> {
   void setNested(List<String> nestedMapKeys, Object? value) {
     Map<String, Object?> map = this;
-    for (final String key in nestedMapKeys.sublist(0, nestedMapKeys.length - 1)) {
+    for (final String key in nestedMapKeys.sublist(
+      0,
+      nestedMapKeys.length - 1,
+    )) {
       map = (map[key] ??= <String, Object?>{}) as Map<String, Object?>;
     }
     map[nestedMapKeys.last] = value;
@@ -48,7 +60,10 @@ extension MapJsonUtils on Map<String, Object?> {
 
   T? getNested<T extends Object>(List<String> nestedMapKeys) {
     Map<String, Object?> map = this;
-    for (final String key in nestedMapKeys.sublist(0, nestedMapKeys.length - 1)) {
+    for (final String key in nestedMapKeys.sublist(
+      0,
+      nestedMapKeys.length - 1,
+    )) {
       map = (map[key] ??= <String, Object?>{}) as Map<String, Object?>;
     }
     return map[nestedMapKeys.last] as T?;

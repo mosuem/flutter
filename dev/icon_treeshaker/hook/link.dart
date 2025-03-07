@@ -4,6 +4,7 @@ import 'dart:io' as io;
 import 'package:collection/collection.dart';
 import 'package:file/file.dart';
 import 'package:file/local.dart';
+import 'package:icon_treeshaker/flutter_config.dart';
 import 'package:icon_treeshaker/hook_helper.dart';
 import 'package:icon_treeshaker/icon_treeshaker.dart';
 import 'package:logging/logging.dart';
@@ -21,7 +22,12 @@ Future<void> main(List<String> arguments) async => await link(arguments, (
   FileSystem fs = LocalFileSystem();
   var usages = input.usages;
   //TODO(mosum): Get path to subset from flutter
-  final pathToSubsetBinary = '';
+  final fontSubset = input.config.flutter.fontSubsetBinary;
+  if (fontSubset == null) {
+    throw ArgumentError(
+      'The font subset binary was not provided by $input - icon tree shaking is not possible',
+    );
+  }
   logger.info('Getting tree-shaker data for icons.');
   final Map<FontAsset, IconTreeShakerData> pathToTreeshakeData = getIconData(
     usages,
@@ -35,22 +41,24 @@ Future<void> main(List<String> arguments) async => await link(arguments, (
       continue;
     }
     final fontFile = fs.file(fontAsset.file);
-    logger.info('Running $pathToSubsetBinary on $fontFile.');
+    logger.info('Running $fontSubset on $fontFile.');
+    var pathOfSubsetFont = p.join(
+      input.outputDirectoryShared.path,
+      //TODO(mosum): Handle duplicates
+      p.basename(fontAsset.file),
+    );
     final success = await subsetFont(
       fontFile: fontFile,
-      outputPath: p.join(
-        input.outputDirectoryShared.path,
-        //TODO(mosum): Handle duplicates
-        p.basename(fontAsset.file),
-      ),
+      outputPath: pathOfSubsetFont,
       iconData: iconData,
       fs: fs,
-      pathToSubsetBinary: pathToSubsetBinary,
+      pathToSubsetBinary: fontSubset,
       logger: logger,
     );
+    output.assets.font.add(fontAsset.copyWith(file: pathOfSubsetFont));
     if (!success) {
       throw io.ProcessException(
-        pathToSubsetBinary,
+        fontSubset,
         [],
         'Failure when trying to treeshake $fontAsset. Check the log for more details.',
       );

@@ -56,7 +56,10 @@ class DartBuild extends Target {
           runPackageName!,
         );
     result = await runFlutterSpecificHooks(
-      environment: environment,
+      environmentDefines: {
+        ...environment.defines,
+        Artifact.fontSubset.name: environment.artifacts.getArtifactPath(Artifact.fontSubset),
+      },
       buildRunner: buildRunner,
       targetPlatform: targetPlatform,
       projectUri: projectUri,

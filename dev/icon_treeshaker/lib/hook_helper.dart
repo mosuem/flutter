@@ -4,38 +4,8 @@
 
 import 'dart:collection';
 
-import 'package:logging/logging.dart' show Logger;
 import 'package:native_assets_cli/data_assets.dart';
 import 'package:native_assets_cli/native_assets_cli.dart';
-
-class FontBuilder {
-  final List<FontAsset Function(BuildInput input)> fonts = [];
-
-  FontBuilder();
-
-  void addFont(String family, String style, int weight, String file) =>
-      fonts.add(
-        (input) => FontAsset(
-          family: family,
-          style: style,
-          weight: weight,
-          file: file,
-          package: input.packageName,
-        ),
-      );
-
-  Future<void> run({
-    required BuildInput input,
-    required BuildOutputBuilder output,
-    Logger? logger,
-    String? linkInPackage = 'assets',
-  }) async {
-    output.assets.addEncodedAssets(
-      fonts.map((font) => font(input).encode()),
-      linkInPackage: linkInPackage,
-    );
-  }
-}
 
 /// Data bundled with a Dart or Flutter application.
 ///
@@ -49,7 +19,7 @@ final class FontAsset {
   final String family;
 
   /// https://api.flutter.dev/flutter/dart-ui/FontStyle.html values - italic or normal
-  final String style;
+  final String? style;
 
   /// integer multiple of 100, between 100 and 900
   final int? weight;
@@ -61,15 +31,8 @@ final class FontAsset {
   final String package;
 
   /// The identifier for this data asset.
-  ///
-  /// An [DataAsset] has a string identifier called "asset id". Dart code that
-  /// uses an asset references the asset using this asset id.
-  ///
-  /// An asset identifier consists of two elements, the `package` and `name`,
-  /// which together make a library uri `package:<package>/<name>`. The package
-  /// being part of the identifer prevents name collisions between assets of
-  /// different packages.
-  String get id => 'package:$package/$file';
+  /// TODO(mosum): don't use family to allow multiple fonts per family
+  String get id => 'package:$package/$family';
 
   /// Constructs a [DataAsset] from an [EncodedAsset].
   factory FontAsset.fromEncoded(EncodedAsset asset) {
@@ -77,7 +40,7 @@ final class FontAsset {
     final jsonMap = asset.encoding;
     return FontAsset(
       family: jsonMap[_familyKey] as String,
-      style: jsonMap[_styleKey] as String,
+      style: jsonMap[_styleKey] as String?,
       weight: jsonMap[_weightKey] as int?,
       package: jsonMap[_packageKey] as String,
       file: jsonMap[_fileKey] as String,
@@ -122,6 +85,20 @@ final class FontAsset {
     required this.file,
     required this.package,
   });
+
+  FontAsset copyWith({
+    String? family,
+    String? style,
+    int? weight,
+    String? file,
+    String? package,
+  }) => FontAsset(
+    family: family ?? this.family,
+    style: style ?? this.style,
+    weight: weight ?? this.weight,
+    file: file ?? this.file,
+    package: package ?? this.package,
+  );
 }
 
 const _familyKey = 'family';
@@ -129,3 +106,41 @@ const _styleKey = 'style';
 const _weightKey = 'weight';
 const _packageKey = 'package';
 const _fileKey = 'file';
+
+/// Extension to the [LinkOutputBuilder] providing access to emitting data
+/// assets (only available if data assets are supported).
+extension FontAssetLinkOutputBuilder on EncodedAssetLinkOutputBuilder {
+  /// Provides access to emitting data assets.
+  FontAssetLinkOutputBuilderAdd get font => FontAssetLinkOutputBuilderAdd(this);
+}
+
+/// Extension on [LinkOutputBuilder] to emit data assets.
+extension type FontAssetLinkOutputBuilderAdd(
+  EncodedAssetLinkOutputBuilder _output
+) {
+  /// Adds the given [asset] to the link hook output.
+  void add(FontAsset asset) => _output.addEncodedAsset(asset.encode());
+
+  /// Adds the given [assets] to the link hook output.
+  void addAll(Iterable<FontAsset> assets) => assets.forEach(add);
+}
+
+/// Extension to the [LinkOutputBuilder] providing access to emitting data
+/// assets (only available if data assets are supported).
+extension FontAssetBuildOutputBuilder on EncodedAssetBuildOutputBuilder {
+  /// Provides access to emitting data assets.
+  FontAssetBuildOutputBuilderAdd get font =>
+      FontAssetBuildOutputBuilderAdd(this);
+}
+
+/// Extension on [LinkOutputBuilder] to emit data assets.
+extension type FontAssetBuildOutputBuilderAdd(
+  EncodedAssetBuildOutputBuilder _output
+) {
+  /// Adds the given [asset] to the link hook output.
+  void add(FontAsset asset) =>
+      _output.addEncodedAsset(asset.encode(), linkInPackage: 'icon_treeshaker');
+
+  /// Adds the given [assets] to the link hook output.
+  void addAll(Iterable<FontAsset> assets) => assets.forEach(add);
+}
