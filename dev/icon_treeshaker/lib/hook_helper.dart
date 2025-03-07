@@ -25,7 +25,7 @@ final class FontAsset {
   final int? weight;
 
   /// relative path in the package
-  final String file;
+  final Uri file;
 
   /// The package which contains this asset.
   final String package;
@@ -43,7 +43,7 @@ final class FontAsset {
       style: jsonMap[_styleKey] as String?,
       weight: jsonMap[_weightKey] as int?,
       package: jsonMap[_packageKey] as String,
-      file: jsonMap[_fileKey] as String,
+      file: Uri.file(jsonMap[_fileKey] as String),
     );
   }
 
@@ -66,31 +66,31 @@ final class FontAsset {
     FontAsset.type,
     SplayTreeMap<String, Object>.from({
       _packageKey: package,
-      _fileKey: file,
+      _fileKey: file.toFilePath(),
       _familyKey: family,
-      _styleKey: style,
-      _weightKey: weight,
+      if (style != null) _styleKey: style,
+      if (weight != null) _weightKey: weight,
     }),
   );
 
   @override
   String toString() => 'FontAsset(${encode().encoding})';
 
-  static const String type = 'icon';
+  static const String type = 'font';
 
   FontAsset({
-    required this.family,
-    required this.style,
-    required this.weight,
     required this.file,
     required this.package,
+    required this.family,
+    this.style,
+    this.weight,
   });
 
   FontAsset copyWith({
     String? family,
     String? style,
     int? weight,
-    String? file,
+    Uri? file,
     String? package,
   }) => FontAsset(
     family: family ?? this.family,

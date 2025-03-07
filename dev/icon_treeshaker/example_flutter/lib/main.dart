@@ -10,7 +10,11 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      home: Scaffold(body: Center(child: Icon(TwoIcons.acUnit))),
+      home: Scaffold(
+        body: Center(
+          child: Column(children: [Icon(Icons.abc), Icon(TwoIcons.acUnit)]),
+        ),
+      ),
     );
   }
 }
