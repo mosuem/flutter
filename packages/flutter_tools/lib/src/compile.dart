@@ -254,6 +254,7 @@ class KernelCompiler {
     required List<String> dartDefines,
     required PackageConfig packageConfig,
     String? nativeAssets,
+    String? recordedUsages,
   }) async {
     final TargetPlatform? platform =
         targetModel == TargetModel.dartdevc ? TargetPlatform.web_javascript : null;
@@ -369,6 +370,7 @@ class KernelCompiler {
           '--verbosity=error',
           ...?extraFrontEndOptions,
           if (mainUri != null) mainUri else '--native-assets-only',
+          if (recordedUsages != null) '--recorded-usages=$recordedUsages',
         ];
 
     _logger.printTrace(command.join(' '));

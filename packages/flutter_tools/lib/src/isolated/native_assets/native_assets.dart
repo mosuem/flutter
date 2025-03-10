@@ -4,18 +4,22 @@
 
 // Logic for native assets shared between all host OSes.
 
+import 'package:icon_treeshaker/flutter_config.dart';
+import 'package:icon_treeshaker/hook_helper.dart' show FontAsset;
 import 'package:logging/logging.dart' as logging;
 import 'package:native_assets_builder/native_assets_builder.dart';
 import 'package:native_assets_cli/code_assets_builder.dart';
 import 'package:native_assets_cli/data_assets_builder.dart';
 import 'package:package_config/package_config_types.dart';
 
+import '../../artifacts.dart' show Artifact;
 import '../../base/common.dart';
 import '../../base/file_system.dart';
 import '../../base/logger.dart';
 import '../../base/platform.dart';
 import '../../build_info.dart';
 import '../../build_system/exceptions.dart';
+import '../../build_system/targets/common.dart';
 import '../../cache.dart';
 import '../../convert.dart';
 import '../../features.dart';
@@ -41,6 +45,7 @@ final class DartHookResult {
     this.buildEnd,
     this.codeAssets,
     this.dataAssets,
+    this.fontAssets,
     this.dependencies,
   );
 
@@ -49,6 +54,7 @@ final class DartHookResult {
       buildEnd = DateTime.now(),
       codeAssets = const <CodeAsset>[],
       dataAssets = const <DataAsset>[],
+      fontAssets = const <FontAsset>[],
       dependencies = const <Uri>[];
 
   factory DartHookResult.fromJson(Map<String, Object?> json) {
@@ -66,13 +72,18 @@ final class DartHookResult {
       for (final Object? json in json['data_assets'] as List<Object?>? ?? const <Object?>[])
         DataAsset.fromEncoded(EncodedAsset.fromJson(json! as Map<String, Object?>)),
     ];
-    return DartHookResult(buildStart, buildEnd, codeAssets, dataAssets, dependencies);
+    final List<FontAsset> fontAssets = <FontAsset>[
+      for (final Object? json in json['data_assets'] as List<Object?>? ?? const <Object?>[])
+        FontAsset.fromEncoded(EncodedAsset.fromJson(json! as Map<String, Object?>)),
+    ];
+    return DartHookResult(buildStart, buildEnd, codeAssets, dataAssets, fontAssets, dependencies);
   }
 
   final DateTime buildStart;
   final DateTime buildEnd;
   final List<CodeAsset> codeAssets;
   final List<DataAsset> dataAssets;
+  final List<FontAsset> fontAssets;
   final List<Uri> dependencies;
 
   Map<String, Object?> toJson() => <String, Object?>{
@@ -81,6 +92,7 @@ final class DartHookResult {
     'dependencies': <Object?>[for (final Uri dep in dependencies) dep.toString()],
     'code_assets': <Object?>[for (final CodeAsset code in codeAssets) code.encode().toJson()],
     'data_assets': <Object?>[for (final DataAsset asset in dataAssets) asset.encode().toJson()],
+    'font_assets': <Object?>[for (final FontAsset asset in fontAssets) asset.encode().toJson()],
   };
 
   /// The files that eventually should be bundled with the app.
@@ -88,6 +100,7 @@ final class DartHookResult {
     for (final CodeAsset code in codeAssets)
       if (code.linkMode is DynamicLoadingBundled) code.file!,
     for (final DataAsset asset in dataAssets) asset.file,
+    for (final FontAsset asset in fontAssets) asset.file,
   ];
 
   /// Whether caller may need to re-run the dart build.
@@ -678,19 +691,25 @@ Future<DartHookResult> _runDartHooks({
       buildAssetTypes: <String>[
         if (codeAssetSupport) CodeAsset.type,
         if (dataAssetSupport) DataAsset.type,
+        FontAsset.type,
       ],
       inputCreator: () {
         final BuildInputBuilder buildInputBuilder = BuildInputBuilder();
         if (targetOS != null) {
-          buildInputBuilder.config.setupCode(
-            targetArchitecture: architecture,
-            linkModePreference: LinkModePreference.dynamic,
-            cCompiler: cCompilerConfig,
-            targetOS: targetOS,
-            android: androidConfig,
-            iOS: iosConfig,
-            macOS: macOSConfig,
-          );
+          buildInputBuilder.config
+            ..setupCode(
+              targetArchitecture: architecture,
+              linkModePreference: LinkModePreference.dynamic,
+              cCompiler: cCompilerConfig,
+              targetOS: targetOS,
+              android: androidConfig,
+              iOS: iosConfig,
+              macOS: macOSConfig,
+            )
+            ..setupFlutter(
+              //TODO(mosum): In the future, decouple the font subset tool from Flutter by shipping it with the icon treeshaking package.
+              fontSubsetBinary: environmentDefines[Artifact.fontSubset.name],
+            );
         }
         return buildInputBuilder;
       },
@@ -723,6 +742,7 @@ Future<DartHookResult> _runDartHooks({
       buildAssetTypes: <String>[
         if (codeAssetSupport) CodeAsset.type,
         if (dataAssetSupport) DataAsset.type,
+        FontAsset.type,
       ],
       inputCreator: () {
         final LinkInputBuilder linkInputBuilder = LinkInputBuilder();
@@ -737,6 +757,10 @@ Future<DartHookResult> _runDartHooks({
             macOS: macOSConfig,
           );
         }
+        linkInputBuilder.setupLink(
+          assets: assets,
+          recordedUsesFile: Uri.file(environmentDefines[KernelSnapshot.recordedUsagesName]!),
+        );
         return linkInputBuilder;
       },
       inputValidator:
@@ -773,10 +797,23 @@ Future<DartHookResult> _runDartHooks({
           .where((EncodedAsset asset) => asset.type == DataAsset.type)
           .map<DataAsset>(DataAsset.fromEncoded)
           .toList();
+
+  final List<FontAsset> fontAssets =
+      assets
+          .where((EncodedAsset asset) => asset.type == FontAsset.type)
+          .map<FontAsset>(FontAsset.fromEncoded)
+          .toList();
   globals.logger.printTrace('Building native assets for $targetString done.');
 
   final DateTime buildEnd = DateTime.now();
-  return DartHookResult(buildStart, buildEnd, codeAssets, dataAssets, dependencies.toList());
+  return DartHookResult(
+    buildStart,
+    buildEnd,
+    codeAssets,
+    dataAssets,
+    fontAssets,
+    dependencies.toList(),
+  );
 }
 
 List<Architecture> _architecturesForOS(
