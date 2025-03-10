@@ -370,7 +370,7 @@ class KernelCompiler {
           '--verbosity=error',
           ...?extraFrontEndOptions,
           if (mainUri != null) mainUri else '--native-assets-only',
-          if (recordedUsages != null) '--recorded-usages-file=$recordedUsages',
+          if (recordedUsages != null) '--recorded-usages=$recordedUsages',
         ];
 
     _logger.printTrace(command.join(' '));
